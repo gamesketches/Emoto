@@ -2,23 +2,73 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Gravilion</title>
+    <title>Emoto</title>
     <script type="text/javascript" src="phaser.min.js"></script>
 </head>
 <body>
-
+  <script>
+    // getUserMedia only works over https in Chrome 47+, so we redirect to https. Also notify user if running from file.
+    if (window.location.protocol == "file:") {
+      alert("You seem to be running this example directly from a file. Note that these examples only work when served from a server or localhost due to canvas cross-domain restrictions.");
+    } else if (window.location.hostname !== "localhost" && window.location.protocol !== "https:"){
+      window.location.protocol = "https";
+    }
+  </script>
+  <script src="clmStuff/js/utils.js"></script>
+  <script src="clmStuff/js/clmtrackr.js"></script>
+  <script src="clmStuff/models/model_pca_20_svm_emotionDetection.js"></script>
+  <script src="clmStuff/js/Stats.js"></script>
+  <script src="clmStuff/examples/js/emotion_classifier.js"></script>
+  <script src="clmStuff/examples/js/emotionmodel.js"></script>
+  <video id="videoel" width="400" height="300" preload="auto" loop>
+  </video>
   <script type="text/javascript">
   var game = new Phaser.Game(800, 400, Phaser.AUTO, '',
-        {preload: arbitrary, create: unfair, update: candyCrush});
+        {preload: preload, create: create, update: update});
 
-  var check, platforms, privilege;
+  var check, platforms, privilege, ctrack, classifier;
+  var vid = document.getElementById('videoel');
   var arbitraryTime = false;
-  function arbitrary() {
-    game.load.image("privilege", "Castle.png");
-    game.load.spritesheet("mario", "smb_spritesheet.png", 48, 48, 3);
+  function preload() {
+    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+    window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
+
+    // check for camerasupport
+    if (navigator.getUserMedia) {
+      // set up stream
+
+      var videoSelector = {video : true};
+      if (window.navigator.appVersion.match(/Chrome\/(.*?) /)) {
+        var chromeVersion = parseInt(window.navigator.appVersion.match(/Chrome\/(\d+)\./)[1], 10);
+        if (chromeVersion < 20) {
+          videoSelector = "video";
+        }
+      };
+
+      navigator.getUserMedia(videoSelector, function( stream ) {
+        if (vid.mozCaptureStream) {
+          vid.mozSrcObject = stream;
+        } else {
+          vid.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
+        }
+        vid.play();
+      }, function() {
+        //insertAltVideo(vid);
+        alert("There was some problem trying to fetch video from your webcam. If you have a webcam, please make sure to accept when the browser asks for access to your webcam.");
+      });
+    } else {
+      //insertAltVideo(vid);
+      alert("This demo depends on getUserMedia, which your browser does not seem to support. :(");
+    }
+
+    /*********** setup of emotion detection *************/
+
+    ctrack = new clm.tracker({useWebGL : true});
+    ctrack.init(pModel);
+    ctrack.start(vid);
   }
 
-  function unfair() {
+  function create() {
     privilege = game.add.sprite(550, 100, 'privilege');
     game.physics.enable(privilege);
 
@@ -38,12 +88,18 @@
     vertBoundaries.ctx.fillStyle = "#ff0000";
     vertBoundaries.ctx.fillRect(0, 0, 800, 10);
 
-    var bottom = platforms.create(0, 390, vertBoundaries, 0);
-    bottom.body.immovable = true;
+    //var bottom = platforms.preload(0, 390, vertBoundaries, 0);
+    //bottom.body.immovable = true;
 
+  	vid.play();
+    classifier = new emotionClassifier();
+    classifier.init(emotionModel);
   }
 
-  function candyCrush() {
+  function update() {
+    var cp = ctrack.getCurrentParameters();
+    var er = classifier.meanPredict(cp);
+    console.log(er[0]);
     game.physics.arcade.collide(check, platforms);
 
     var white = check.getBounds();
