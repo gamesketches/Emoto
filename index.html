@@ -27,8 +27,8 @@
         {preload: preload, create: create, update: update});
 
   var check, platforms, privilege, ctrack, classifier;
+  var p1Ball;
   var vid = document.getElementById('videoel');
-  var arbitraryTime = false;
   function preload() {
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
     window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
@@ -51,7 +51,6 @@
         } else {
           vid.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
         }
-        vid.play();
       }, function() {
         //insertAltVideo(vid);
         alert("There was some problem trying to fetch video from your webcam. If you have a webcam, please make sure to accept when the browser asks for access to your webcam.");
@@ -66,20 +65,20 @@
     ctrack = new clm.tracker({useWebGL : true});
     ctrack.init(pModel);
     ctrack.start(vid);
+    game.load.image("ball", "ball.png");
   }
 
   function create() {
-    privilege = game.add.sprite(550, 100, 'privilege');
-    game.physics.enable(privilege);
 
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
-    check = game.add.sprite(40, 200, 'mario');
-    check.animations.add('walk');
-    check.facingRight = true;
-    check.anchor.setTo(.5,.5);
-    game.physics.enable(check);
-    check.body.gravity.y = 100;
+    p1Ball = game.add.sprite(40, 200, 'ball');
+    p1Ball.anchor.setTo(.5,.5);
+    game.physics.enable(p1Ball);
+    p1Ball.checkWorldBounds = true;
+    p1Ball.body.collideWorldBounds = true;
+    p1Ball.body.immovable = true;
+    p1Ball.body.bounce.set(1);
 
     platforms = game.add.group();
     platforms.enableBody = true;
@@ -94,18 +93,32 @@
   	vid.play();
     classifier = new emotionClassifier();
     classifier.init(emotionModel);
+    game.physics.arcade.velocityFromAngle(45, 500, p1Ball.body.velocity);
   }
 
   function update() {
     var cp = ctrack.getCurrentParameters();
     var er = classifier.meanPredict(cp);
-    console.log(er[0]);
-    game.physics.arcade.collide(check, platforms);
+    function modifyVelocity(vector) {
+      var modifierValue = er[0].value > er[1].value ? er[0].value * 10 : er[1].value * -10;
+      if(vector > 0) {
+          return vector + modifierValue;
+      }
+      else {
+          return vector - modifierValue;
+      }
+    }
+    if(er) {
+      console.log(er);
+      p1Ball.body.velocity.x = modifyVelocity(p1Ball.body.velocity.x);
+      p1Ball.body.velocity.y = modifyVelocity(p1Ball.body.velocity.y);
+    }
+  //  game.physics.arcade.collide(p1Ball, platforms);
 
-    var white = check.getBounds();
-    var passing = privilege.getBounds();
+    var white = p1Ball.getBounds();
+    //var passing = privilege.getBounds();
 
-    if(Phaser.Rectangle.intersects(white, passing)){
+  /*  if(Phaser.Rectangle.intersects(white, passing)){
       game.state.add('gameOver', {
       			preload: function() {},
       			create: function (){
@@ -116,41 +129,7 @@
       game.state.start('gameOver');
 
     }
-
-    var keys = game.input.keyboard.createCursorKeys();
-
-    if(arbitraryTime){
-      check.body.velocity.x = 0;
-      check.animations.play('walk', 5, true);
-    }
-    else {
-      if(keys.right.isDown){
-        if(!check.facingRight){
-          check.scale.x = 1;
-        }
-        check.body.velocity.x += 10;
-        check.animations.play('walk');
-      }
-      else if (keys.left.isDown) {
-        if(check.facingRight){
-          check.scale.x = -1;
-        }
-        check.body.velocity.x -= 10;
-      }
-      else if (keys.up.isDown) {
-        check.body.velocity.y -= 300;
-      }
-      else {
-        check.body.velocity.x = 0;
-      }
-      if(check.body.x > 200){
-        console.log("ARBITRARY TIME");
-        arbitraryTime = true;
-        keys.right.onDown.add(randomAction);
-        keys.left.onDown.add(randomAction);
-        keys.up.onDown.add(randomAction);
-      }
-    }
+    */
 
   }
 
