@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Gravilion</title>
+    <script type="text/javascript" src="phaser.min.js"></script>
+</head>
+<body>
+
+  <script type="text/javascript">
+  var game = new Phaser.Game(800, 400, Phaser.AUTO, '',
+        {preload: arbitrary, create: unfair, update: candyCrush});
+
+  var check, platforms, privilege;
+  var arbitraryTime = false;
+  function arbitrary() {
+    game.load.image("privilege", "Castle.png");
+    game.load.spritesheet("mario", "smb_spritesheet.png", 48, 48, 3);
+  }
+
+  function unfair() {
+    privilege = game.add.sprite(550, 100, 'privilege');
+    game.physics.enable(privilege);
+
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+    check = game.add.sprite(40, 200, 'mario');
+    check.animations.add('walk');
+    check.facingRight = true;
+    check.anchor.setTo(.5,.5);
+    game.physics.enable(check);
+    check.body.gravity.y = 100;
+
+    platforms = game.add.group();
+    platforms.enableBody = true;
+
+    var vertBoundaries = game.make.bitmapData(800, 10);
+    vertBoundaries.ctx.fillStyle = "#ff0000";
+    vertBoundaries.ctx.fillRect(0, 0, 800, 10);
+
+    var bottom = platforms.create(0, 390, vertBoundaries, 0);
+    bottom.body.immovable = true;
+
+  }
+
+  function candyCrush() {
+    game.physics.arcade.collide(check, platforms);
+
+    var white = check.getBounds();
+    var passing = privilege.getBounds();
+
+    if(Phaser.Rectangle.intersects(white, passing)){
+      game.state.add('gameOver', {
+      			preload: function() {},
+      			create: function (){
+      							game.add.text(400, 300, 'Check your privilege', { fontSize: '32px', fill: '#FFF' });
+                  },
+      			update: function() {}
+      		});
+      game.state.start('gameOver');
+
+    }
+
+    var keys = game.input.keyboard.createCursorKeys();
+
+    if(arbitraryTime){
+      check.body.velocity.x = 0;
+      check.animations.play('walk', 5, true);
+    }
+    else {
+      if(keys.right.isDown){
+        if(!check.facingRight){
+          check.scale.x = 1;
+        }
+        check.body.velocity.x += 10;
+        check.animations.play('walk');
+      }
+      else if (keys.left.isDown) {
+        if(check.facingRight){
+          check.scale.x = -1;
+        }
+        check.body.velocity.x -= 10;
+      }
+      else if (keys.up.isDown) {
+        check.body.velocity.y -= 300;
+      }
+      else {
+        check.body.velocity.x = 0;
+      }
+      if(check.body.x > 200){
+        console.log("ARBITRARY TIME");
+        arbitraryTime = true;
+        keys.right.onDown.add(randomAction);
+        keys.left.onDown.add(randomAction);
+        keys.up.onDown.add(randomAction);
+      }
+    }
+
+  }
+
+  function randomAction() {
+    check.body.velocity.x = 0;
+    var diceRoll = Math.random() * 8;
+    console.log(diceRoll);
+    if(diceRoll < 1)
+    {
+      check.body.velocity.y -= 100;
+    }
+    else if (diceRoll < 3) {
+      check.x -= 13;
+    }
+    else {
+      check.x += 10;
+    }
+  }
+</script>
+</body>
+</html>
