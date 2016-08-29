@@ -125,6 +125,12 @@
     if(er) {
       p1Ball.body.velocity.x = modifyVelocity(p1Ball.body.velocity.x, er);
       p1Ball.body.velocity.y = modifyVelocity(p1Ball.body.velocity.y, er);
+      if(er[0].value > er[1].value) {
+          p1Ball.loadTexture('angryBall');
+      }
+      else {
+          p1Ball.loadTexture('sadBall');
+      }
     }
     function FlipDirection(p1Ball, p2Ball){
         p1Ball.body.velocity.x *= -1;
