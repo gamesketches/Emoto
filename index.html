@@ -183,9 +183,16 @@
           ball.loadTexture('angryBall');
           ball.blocking = false;
           if(ball.shotCoolDown <= 0) {
-            var projectile = projectiles.create(ball.body.x + ball.body.width + 5, ball.body.y, "bullet");
-            projectile.scale.setTo(0.5, 0.5);
-            projectile.velocity =  {x: 8, y: 0};
+            if(ball.body.velocity.x > 0){
+              var projectile = projectiles.create(ball.body.x + ball.body.width + 5, ball.body.y, "bullet");
+              projectile.scale.setTo(0.5, 0.5);
+              projectile.velocity =  {x: 8, y: 0};
+            }
+            else {
+              var projectile = projectiles.create(ball.body.x - ball.body.width - 5, ball.body.y, "bullet");
+              projectile.scale.setTo(0.5, 0.5);
+              projectile.velocity = {x: -8, y: 0};
+            }
             ball.shotCoolDown = shotFrequency;
           }
           else {
