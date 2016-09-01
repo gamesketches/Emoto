@@ -22,6 +22,8 @@
   <script src="clmStuff/examples/js/emotionmodel.js"></script>
   <video id="videoel" width="400" height="300" preload="auto" loop>
   </video>
+  <video id="videoel2" width="400" height="300" preload="auto" loop>
+  </video>
   <script type="text/javascript">
   var game = new Phaser.Game(800, 400, Phaser.AUTO, '',
         {preload: preload, create: create, update: update});
@@ -30,6 +32,7 @@
   var check, platforms, ctrack, classifier;
   var p1Ball;
   var vid = document.getElementById('videoel');
+  var vid2 = document.getElementById('videoel2');
   function preload() {
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
     window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
@@ -46,16 +49,50 @@
         }
       };
 
-      navigator.getUserMedia(videoSelector, function( stream ) {
+/*      navigator.getUserMedia(videoSelector, function( stream ) {
         if (vid.mozCaptureStream) {
           vid.mozSrcObject = stream;
+          console.log(stream.getVideoTracks());
         } else {
           vid.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
         }
-      }, function() {
+            navigator.getUserMedia(videoSelector, function(stream) {
+              if(vid2.mozCaptureStream) {
+                vid2.mozSrcObject = stream;
+                console.log(stream.getVideoTracks());
+              }
+            }, function() {alert("some issue")});
+          }, function() {
         //insertAltVideo(vid);
         alert("There was some problem trying to fetch video from your webcam. If you have a webcam, please make sure to accept when the browser asks for access to your webcam.");
-      });
+      });*/
+      var deviceId1;
+      navigator.mediaDevices.enumerateDevices()
+.then(devices => {
+  var camera = devices.find(device => device.kind == "videoinput");
+  if (camera) {
+    console.log(camera.deviceId);
+    var constraints = { deviceId: { exact: camera.deviceId } };
+    deviceId1 = camera.deviceId;
+    return navigator.mediaDevices.getUserMedia({ video: constraints });
+  }
+})
+.then(stream => {vid.srcObject = stream; console.log(stream)})
+.catch(e => console.error(e));
+
+navigator.mediaDevices.enumerateDevices()
+.then(devices => {
+  var deviceId2;
+  devices.forEach(function(device) { if(device.kind == "videoinput" && device.deviceId != deviceId1) {
+    deviceId2 = device.deviceId;
+  }});
+var camera = devices.find(device => device.kind == "videoinput");
+var constraints = { deviceId: { exact: deviceId2 } };
+return navigator.mediaDevices.getUserMedia({ video: constraints });
+})
+.then(stream => {vid2.srcObject = stream; console.log(stream)})
+.catch(e => console.error(e));
+
     } else {
       //insertAltVideo(vid);
       alert("This demo depends on getUserMedia, which your browser does not seem to support. :(");
@@ -104,6 +141,7 @@
     //bottom.body.immovable = true;
 
   	vid.play();
+    vid2.play();
     classifier = new emotionClassifier();
     classifier.init(emotionModel);
     game.physics.arcade.velocityFromAngle(45, 500, p1Ball.body.velocity);
