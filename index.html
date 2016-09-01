@@ -159,30 +159,20 @@
 
   }
 
-  function createPlayer(startLocation) {
-    var ball = game.add.sprite(startLocation.x, startLocation.y, 'sadBall');
-    ball.anchor.setTo(.5,.5);
-    game.physics.enable(ball);
-    ball.checkWorldBounds = true;
-    ball.body.collideWorldBounds = true;
-    ball.body.immovable = true;
-    ball.body.bounce.set(1);
-
-    return ball;
-  }
-
   function EmotionalControl(tracker, ball) {
     var cp = tracker.getCurrentParameters();
     var er = classifier.meanPredict(cp);
     if(er) {
+      var emotion = HighestEmotion(er);
       ball.body.velocity.x = modifyVelocity(ball.body.velocity.x, er);
       ball.body.velocity.y = modifyVelocity(ball.body.velocity.y, er);
-      if(er[0].value > er[1].value) {
+      if(emotion == "angry") {
           ball.loadTexture('angryBall');
       }
       else {
           ball.loadTexture('sadBall');
       }
+      console.log(emotion);
     }
   }
 
@@ -195,6 +185,37 @@
         return vector - modifierValue;
     }
   }
+
+  function HighestEmotion(results) {
+    if(results[0].value > results[1].value) {
+      return "angry";
+    }
+    else {
+      return "sad";
+    }
+    /* Leaving this here for when we're doing more than angry and sad
+    var temp = 0;
+      for(var i = 0; i < results.length; i++) {
+        if(results[i].value > results[temp].value) {
+          temp = i;
+      }
+    }
+    return results[i].emotion;*/
+  }
+
+
+  function createPlayer(startLocation) {
+    var ball = game.add.sprite(startLocation.x, startLocation.y, 'sadBall');
+    ball.anchor.setTo(.5,.5);
+    game.physics.enable(ball);
+    ball.checkWorldBounds = true;
+    ball.body.collideWorldBounds = true;
+    ball.body.immovable = true;
+    ball.body.bounce.set(1);
+
+    return ball;
+  }
+
 </script>
 </body>
 </html>
