@@ -30,7 +30,7 @@
 
   // Tuning variables
   var maxVelocity = 700;
-  var shotFrequency = 20;
+  var shotFrequency = 30;
   var maxLife = 20;
   var projectileVelocity = 1;
 
@@ -98,6 +98,7 @@
     game.load.image("sadBall", "blue.png");
     game.load.image("angryBall", "red.png");
     game.load.image("brick", "brick.png");
+    game.load.image("bullet", "tempBul.png");
   }
 
   function create() {
@@ -144,18 +145,32 @@
     if(game.physics.arcade.overlap(p1Ball, p2Ball)) {
         FlipDirection(p1Ball, p2Ball);
     }
-  /*  if(Phaser.Rectangle.intersects(white, passing)){
-      game.state.add('gameOver', {
-      			preload: function() {},
-      			create: function (){
-      							game.add.text(400, 300, 'Check your privilege', { fontSize: '32px', fill: '#FFF' });
-                  },
-      			update: function() {}
-      		});
-      game.state.start('gameOver');
 
-    }
-    */
+    projectiles.forEach(
+        function(child) {
+          child.body.x += child.velocity.x;
+          child.body.y += child.velocity.y;
+          var hit = false;
+          if(Phaser.Rectangle.intersects(p1Ball.getBounds(), child.getBounds())){
+            if(!p1Ball.blocking)
+              p1Ball.life -= 1;
+            hit = true;
+            if(p1Ball.life <= 0) {
+                game.state.start("p1Wins");
+            }
+          }
+          if(Phaser.Rectangle.intersects(p2Ball.getBounds(), child.getBounds())){
+            if(!p2Ball.blocking)
+              p2Ball.life -= 1;
+            hit = true;
+            if(p2Ball.life <= 0) {
+                game.state.start("p2Wins");
+            }
+          }
+          if(hit) {
+            child.destroy();
+          }
+        });
 
   }
 
@@ -164,15 +179,24 @@
     var er = classifier.meanPredict(cp);
     if(er) {
       var emotion = HighestEmotion(er);
-      ball.body.velocity.x = modifyVelocity(ball.body.velocity.x, er);
-      ball.body.velocity.y = modifyVelocity(ball.body.velocity.y, er);
       if(emotion == "angry") {
           ball.loadTexture('angryBall');
+          ball.blocking = false;
+          if(ball.shotCoolDown <= 0) {
+            var projectile = projectiles.create(ball.body.x + ball.body.width + 5, ball.body.y, "bullet");
+            projectile.scale.setTo(0.5, 0.5);
+            projectile.velocity =  {x: 8, y: 0};
+            ball.shotCoolDown = shotFrequency;
+          }
+          else {
+            ball.shotCoolDown -= 1;
+          }
       }
       else {
           ball.loadTexture('sadBall');
+          ball.shotCoolDown = 0;
+          ball.blocking = true;
       }
-      console.log(emotion);
     }
   }
 
@@ -203,6 +227,25 @@
     return results[i].emotion;*/
   }
 
+  game.state.add('p1Wins', {
+  			preload: function() {},
+  			create: function (){
+  							game.add.text(400, 300, 'Player 1 Wins', { fontSize: '32px', fill: '#FFF' });
+  						  game.time.events.add(Phaser.Timer.SECOND * 2, function() {game.state.start('fight')}, this);
+
+              },
+  			update: function() {}
+  		});
+  game.state.add('p2Wins', {
+  	preload: function() {},
+  	create: function (){
+  					game.add.text(400, 300, 'Player 2 Wins', { fontSize: '32px', fill: '#FFF' });
+  		      game.time.events.add(Phaser.Timer.SECOND * 2, function() { game.state.start('fight')}, this);
+
+          },
+  	update: function() {}
+  });
+
 
   function createPlayer(startLocation) {
     var ball = game.add.sprite(startLocation.x, startLocation.y, 'sadBall');
@@ -212,6 +255,9 @@
     ball.body.collideWorldBounds = true;
     ball.body.immovable = true;
     ball.body.bounce.set(1);
+    ball.shotCoolDown = 0;
+    ball.life = maxLife;
+    ball.blocking = false;
 
     return ball;
   }
