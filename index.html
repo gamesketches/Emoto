@@ -154,6 +154,14 @@
 
     projectiles = game.add.group();
     projectiles.enableBody = true;
+
+    var lifeBar = game.make.bitmapData(200, 30);
+    lifeBar.ctx.fillStyle = "#d2b48c";
+    lifeBar.ctx.fillRect(0, 0, 200, 30);
+
+    bars = game.add.group();
+    p1Ball.lifeBar = bars.create(0, 0, lifeBar, 0);
+    p2Ball.lifeBar = bars.create(gameWidth - 200, 0, lifeBar, 0);
   }
 
   function update() {
@@ -172,6 +180,7 @@
     }
 
     game.physics.arcade.overlap(p1Ball, boundaries, CalculateBounce, null, this);
+    game.physics.arcade.overlap(p2Ball, boundaries, CalculateBounce, null, this);
 
     projectiles.forEach(
         function(child) {
@@ -199,6 +208,8 @@
           }
         });
 
+      p1Ball.lifeBar.scale.set(p1Ball.life / maxLife, 1);
+      p2Ball.lifeBar.scale.set(p1Ball.life / maxLife, 1);
   }
 
   function CalculateBounce(ball, boundary) {
@@ -216,9 +227,37 @@
             angle = ball.body.velocity.x > 0 ? 45 : 135;
             console.log("sad");
         }
-        console.log(angle);
-      game.physics.arcade.velocityFromAngle(angle, 500, ball.body.velocity);
     }
+    if(boundary.name == "bottom") {
+        if(ball.emotion == "happy") {
+          angle = ball.body.velocity.x > 0 ? 310 : 230;
+        }
+        else if(ball.emotion == "angry") {
+            angle = 330;
+        }
+        else if(ball.emotion == "sad") {
+           angle = ball.body.velocity.x > 0 ? 315 : 225;
+        }
+    }
+    if(boundary.name == "left" || boundary.name == "right") {
+        if(ball.emotion == "happy") {
+              angle = 0;
+              console.log("happy");
+        }
+        else if(ball.emotion == "angry") {
+            angle = ball.body.velocity.y > 0 ? 40 : -10;
+            console.log("anger");
+            }
+        else if(ball.emotion == "sad") {
+            angle = ball.body.velocity.y > 0 ? 45 : -45;
+            console.log("sad");
+        }
+      if(boundary.name == "right") {
+          angle -= 180;
+      }
+    }
+    game.physics.arcade.velocityFromAngle(angle, 500, ball.body.velocity);
+
   }
 
   function EmotionalControl(tracker, ball) {
@@ -270,20 +309,19 @@
   }
 
   function HighestEmotion(results) {
-    if(results[0].value > results[1].value) {
+    /*if(results[0].value > results[1].value) {
       return "angry";
     }
     else {
       return "sad";
-    }
-    /* Leaving this here for when we're doing more than angry and sad
+    }*/
     var temp = 0;
       for(var i = 0; i < results.length; i++) {
         if(results[i].value > results[temp].value) {
           temp = i;
       }
     }
-    return results[i].emotion;*/
+    return results[temp].emotion;
   }
 
   game.state.add('p1Wins', {
