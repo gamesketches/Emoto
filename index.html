@@ -25,20 +25,24 @@
   <video id="videoel2" width="400" height="300" preload="auto" loop>
   </video>
   <script type="text/javascript">
-  var game = new Phaser.Game(800, 400, Phaser.AUTO, '',
-        {preload: preload, create: create, update: update});
-
-  // Tuning variables
   var maxVelocity = 700;
   var shotFrequency = 30;
   var maxLife = 20;
   var projectileVelocity = 1;
+  var gameWidth = 800;
+  var gameHeight = 400;
 
   var platforms, projectiles;
   var ctrack, ctrack2, classifier;
   var p1Ball, p2Ball;
   var vid = document.getElementById('videoel');
   var vid2 = document.getElementById('videoel2');
+
+  var game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, '',
+        {preload: preload, create: create, update: update});
+
+  // Tuning variables
+
   function preload() {
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
     window.URL = window.URL || window.webkitURL || window.msURL || window.mozURL;
@@ -95,30 +99,51 @@
     ctrack2.init(pModel);
     ctrack.start(vid);
     ctrack2.start(vid2);
-    game.load.image("sadBall", "blue.png");
-    game.load.image("angryBall", "red.png");
+    game.load.image("sadBall", "tempFace2.png");
+    game.load.image("angryBall", "tempFace3.png");
+    game.load.image("happyBall", "tempFace1.png");
     game.load.image("brick", "brick.png");
     game.load.image("bullet", "tempBul.png");
   }
 
   function create() {
 
+    game.stage.backgroundColor = "#4488AA";
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
     p1Ball = createPlayer({x: 40, y: 200});
     p2Ball = createPlayer({x: 400, y: 200});
 
-    platforms = game.add.group();
+    /*platforms = game.add.group();
     platforms.enableBody = true;
     platforms.physicsBodyType = Phaser.Physics.ARCADE;
-    platforms.create(300, 300, 'brick');
+    platforms.create(300, 300, 'brick');*/
 
-    var vertBoundaries = game.make.bitmapData(800, 10);
+    boundaries = game.add.group();
+    boundaries.enableBody = true;
+    boundaries.physicsBodyType = Phaser.Physics.ARCADE;
+
+    var vertBoundaries = game.make.bitmapData(gameWidth, 10);
     vertBoundaries.ctx.fillStyle = "#ff0000";
     vertBoundaries.ctx.fillRect(0, 0, 800, 10);
 
-    //var bottom = platforms.preload(0, 390, vertBoundaries, 0);
-    //bottom.body.immovable = true;
+    var top = boundaries.create(0, 30, vertBoundaries, 0)
+    top.body.immovable = true;
+    top.name = "top";
+    var bottom = boundaries.create(0, gameHeight - 10, vertBoundaries, 0);
+    bottom.body.immovable = true;
+    bottom.name = "bottom";
+
+    var horBoundaries = game.make.bitmapData(10, gameHeight - 20);
+    horBoundaries.ctx.fillStyle = "#ff0000";
+    horBoundaries.ctx.fillRect(0, 0, 10, gameHeight - 10);
+
+    var left = boundaries.create(0, 30, horBoundaries, 0);
+    left.body.immovable = true;
+    left.name = "left";
+    var right = boundaries.create(gameWidth - 10, 30, horBoundaries, 0);
+    right.body.immovable = true;
+    right.name = "right";
 
   	vid.play();
     vid2.play();
@@ -141,10 +166,12 @@
         p1Ball.body.velocity.y *= -1;
         p2Ball.body.velocity.y *= -1;
     }
-    game.physics.arcade.collide(p1Ball, platforms, function(ball, brick) { brick.kill()}, function(ball, brick) { return true}, this);
+  //  game.physics.arcade.collide(p1Ball, platforms, function(ball, brick) { brick.kill()}, function(ball, brick) { return true}, this);
     if(game.physics.arcade.overlap(p1Ball, p2Ball)) {
         FlipDirection(p1Ball, p2Ball);
     }
+
+    game.physics.arcade.overlap(p1Ball, boundaries, CalculateBounce, null, this);
 
     projectiles.forEach(
         function(child) {
@@ -174,6 +201,26 @@
 
   }
 
+  function CalculateBounce(ball, boundary) {
+    var angle = 0;
+    if(boundary.name == "top") {
+        if(ball.emotion == "happy") {
+              angle = 90;
+              console.log("happy");
+        }
+        else if(ball.emotion == "angry") {
+            angle = ball.body.velocity.x > 0 ? 80 : 130;
+            console.log("anger");
+            }
+        else if(ball.emotion == "sad") {
+            angle = ball.body.velocity.x > 0 ? 45 : 135;
+            console.log("sad");
+        }
+        console.log(angle);
+      game.physics.arcade.velocityFromAngle(angle, 500, ball.body.velocity);
+    }
+  }
+
   function EmotionalControl(tracker, ball) {
     var cp = tracker.getCurrentParameters();
     var er = classifier.meanPredict(cp);
@@ -199,11 +246,16 @@
             ball.shotCoolDown -= 1;
           }
       }
+      else if(emotion == "happy") {
+        ball.loadTexture("happyBall");
+        ball.shotCoolDown = 0;
+      }
       else {
           ball.loadTexture('sadBall');
           ball.shotCoolDown = 0;
           ball.blocking = true;
       }
+    ball.emotion = emotion;
     }
   }
 
