@@ -26,11 +26,11 @@
   </video>
   <script type="text/javascript">
   var maxVelocity = 700;
-  var shotFrequency = 30;
   var maxLife = 20;
   var projectileVelocity = 1;
+  var projectileGrowth = 0.01;
   var gameWidth = 800;
-  var gameHeight = 400;
+  var gameHeight = 500;
 
   var platforms, projectiles;
   var ctrack, ctrack2, classifier;
@@ -111,9 +111,11 @@
     game.stage.backgroundColor = "#4488AA";
     game.physics.startSystem(Phaser.Physics.ARCADE);
 
-    p1Ball = createPlayer({x: 40, y: 200});
-    p2Ball = createPlayer({x: 400, y: 200});
+    p1Ball = createPlayer({x: 200, y: 400});
+    p2Ball = createPlayer({x: 600, y: 200});
 
+    p1Ball.direction = 1;
+    p2Ball.direction = -1;
     /*platforms = game.add.group();
     platforms.enableBody = true;
     platforms.physicsBodyType = Phaser.Physics.ARCADE;
@@ -149,8 +151,8 @@
     vid2.play();
     classifier = new emotionClassifier();
     classifier.init(emotionModel);
-    game.physics.arcade.velocityFromAngle(45, 500, p1Ball.body.velocity);
-    game.physics.arcade.velocityFromAngle(45,-500, p2Ball.body.velocity);
+    game.physics.arcade.velocityFromAngle(90, 100, p1Ball.body.velocity);
+    game.physics.arcade.velocityFromAngle(90,-100, p2Ball.body.velocity);
 
     projectiles = game.add.group();
     projectiles.enableBody = true;
@@ -256,7 +258,10 @@
           angle -= 180;
       }
     }
-    game.physics.arcade.velocityFromAngle(angle, 500, ball.body.velocity);
+
+    // TODO: CHANGE THIS
+    angle = boundary.name == "bottom" ? -90 : 90;
+    game.physics.arcade.velocityFromAngle(angle, 200, ball.body.velocity);
 
   }
 
@@ -268,31 +273,24 @@
       if(emotion == "angry") {
           ball.loadTexture('angryBall');
           ball.blocking = false;
-          if(ball.shotCoolDown <= 0) {
-            if(ball.body.velocity.x > 0){
-              var projectile = projectiles.create(ball.body.x + ball.body.width + 5, ball.body.y, "bullet");
-              projectile.scale.setTo(0.5, 0.5);
-              projectile.velocity =  {x: 8, y: 0};
-            }
-            else {
-              var projectile = projectiles.create(ball.body.x - ball.body.width - 5, ball.body.y, "bullet");
-              projectile.scale.setTo(0.5, 0.5);
-              projectile.velocity = {x: -8, y: 0};
-            }
-            ball.shotCoolDown = shotFrequency;
-          }
-          else {
-            ball.shotCoolDown -= 1;
-          }
+          ball.chargeTime++;
       }
       else if(emotion == "happy") {
         ball.loadTexture("happyBall");
         ball.shotCoolDown = 0;
+        if(ball.chargeTime != 0) {
+            CreateProjectile(ball);
+            ball.chargeTime = 0;
+        }
       }
       else {
           ball.loadTexture('sadBall');
           ball.shotCoolDown = 0;
           ball.blocking = true;
+          if(ball.chargeTime != 0) {
+              CreateProjectile(ball);
+              ball.chargeTime = 0;
+          }
       }
     ball.emotion = emotion;
     }
@@ -355,8 +353,22 @@
     ball.shotCoolDown = 0;
     ball.life = maxLife;
     ball.blocking = false;
-
+    ball.chargeTime = 0;
     return ball;
+  }
+
+  function CreateProjectile(ball) {
+    var projectileSize = ball.chargeTime * projectileGrowth;
+    if(ball.direction > 0){
+      var projectile = projectiles.create(ball.body.x + ball.body.width + 5, ball.body.y, "bullet");
+      projectile.scale.setTo(projectileSize, projectileSize);
+      projectile.velocity =  {x: 8, y: 0};
+    }
+    else {
+      var projectile = projectiles.create(ball.body.x - ball.body.width - 5, ball.body.y, "bullet");
+      projectile.scale.setTo(projectileSize, projectileSize);
+      projectile.velocity = {x: -8, y: 0};
+    }
   }
 
 </script>
