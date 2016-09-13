@@ -33,7 +33,7 @@
   var gameHeight = 500;
 
   var platforms, projectiles;
-  var ctrack, ctrack2, classifier;
+  var ctrack, ctrack2, classifier1, classifier2;
   var p1Ball, p2Ball;
   var vid = document.getElementById('videoel');
   var vid2 = document.getElementById('videoel2');
@@ -97,8 +97,6 @@
     ctrack2 = new clm.tracker({useWebGL : true});
     ctrack.init(pModel);
     ctrack2.init(pModel);
-    ctrack.start(vid);
-    ctrack2.start(vid2);
     game.load.image("sadBall", "tempFace2.png");
     game.load.image("angryBall", "tempFace3.png");
     game.load.image("happyBall", "tempFace1.png");
@@ -149,8 +147,12 @@
 
   	vid.play();
     vid2.play();
+    ctrack.start(vid);
+    ctrack2.start(vid2);
     classifier = new emotionClassifier();
     classifier.init(emotionModel);
+    classifier2 = new emotionClassifier();
+    classifier2.init(emotionModel);
     game.physics.arcade.velocityFromAngle(90, 100, p1Ball.body.velocity);
     game.physics.arcade.velocityFromAngle(90,-100, p2Ball.body.velocity);
 
@@ -168,8 +170,8 @@
 
   function update() {
 
-    EmotionalControl(ctrack, p1Ball);
-    EmotionalControl(ctrack2, p2Ball);
+    EmotionalControl(ctrack, classifier, p1Ball);
+    EmotionalControl(ctrack2, classifier2, p2Ball);
     function FlipDirection(p1Ball, p2Ball){
         p1Ball.body.velocity.x *= -1;
         p2Ball.body.velocity.x *= -1;
@@ -211,7 +213,7 @@
         });
 
       p1Ball.lifeBar.scale.set(p1Ball.life / maxLife, 1);
-      p2Ball.lifeBar.scale.set(p1Ball.life / maxLife, 1);
+      p2Ball.lifeBar.scale.set(p2Ball.life / maxLife, 1);
   }
 
   function CalculateBounce(ball, boundary) {
@@ -265,7 +267,7 @@
 
   }
 
-  function EmotionalControl(tracker, ball) {
+  function EmotionalControl(tracker, classifier, ball) {
     var cp = tracker.getCurrentParameters();
     var er = classifier.meanPredict(cp);
     if(er) {
